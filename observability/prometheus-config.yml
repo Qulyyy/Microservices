@@ -1,0 +1,76 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'microservices-monitor'
+
+scrape_configs:
+  # Prometheus сам себя
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Auth Service
+  - job_name: 'auth_service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['auth_service:5001']
+        labels:
+          service: 'auth_service'
+
+  # User Service
+  - job_name: 'user_service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['user_service:5002']
+        labels:
+          service: 'user_service'
+
+  # Admin Service
+  - job_name: 'admin_service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['admin_service:5003']
+        labels:
+          service: 'admin_service'
+
+  # Submission Service
+  - job_name: 'submission_service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['submission_service:5004']
+        labels:
+          service: 'submission_service'
+
+  # Compiler Service
+  - job_name: 'compiler_service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['compiler_service:5005']
+        labels:
+          service: 'compiler_service'
+
+  # Notification Service
+  - job_name: 'notification_service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['notification_service:5006']
+        labels:
+          service: 'notification_service'
+
+  # Ad Service
+  - job_name: 'ad_service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ad_service:5007']
+        labels:
+          service: 'ad_service'
+
+  # Email Service
+  - job_name: 'email_service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['email_service:5008']
+        labels:
+          service: 'email_service'
+

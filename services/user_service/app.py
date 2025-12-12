@@ -2,9 +2,71 @@ from flask import Flask, request, jsonify, send_from_directory
 import requests
 import os
 import random
+import logging
+import time
 from flasgger import Swagger, swag_from
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST, REGISTRY
 
-app = Flask(__name__, static_folder='static')
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - [%(service)s] - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
+logger = logging.LoggerAdapter(logger, {'service': 'user_service'})
+
+app = Flask(__name__, static_folder='static', static_url_path='')
+
+# Prometheus метрики
+http_requests_total = Counter(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['service', 'method', 'endpoint', 'status']
+)
+
+http_request_duration_seconds = Histogram(
+    'http_request_duration_seconds',
+    'HTTP request duration in seconds',
+    ['service', 'method', 'endpoint']
+)
+
+# Middleware для логирования и метрик
+@app.before_request
+def before_request():
+    request.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    duration = time.time() - request.start_time
+    endpoint = request.endpoint or 'unknown'
+    
+    # Логирование
+    logger.info(
+        f"{request.method} {request.path} - {response.status_code} - {duration:.3f}s",
+        extra={
+            'method': request.method,
+            'endpoint': endpoint,
+            'status_code': response.status_code,
+            'duration': duration
+        }
+    )
+    
+    # Метрики
+    http_requests_total.labels(
+        service='user_service',
+        method=request.method,
+        endpoint=endpoint,
+        status=response.status_code
+    ).inc()
+    
+    http_request_duration_seconds.labels(
+        service='user_service',
+        method=request.method,
+        endpoint=endpoint
+    ).observe(duration)
+    
+    return response
 
 AUTH_SERVICE_URL = os.getenv('AUTH_SERVICE_URL', 'http://auth_service:5001')
 
@@ -66,16 +128,6 @@ def verify_token(token):
 })
 def health():
     return jsonify({'status': 'ok', 'service': 'user_service'})
-
-@app.route('/', methods=['GET'])
-def index():
-    """Главная страница с веб-интерфейсом"""
-    return send_from_directory(app.static_folder, 'index.html')
-
-@app.route('/<path:path>', methods=['GET'])
-def static_files(path):
-    """Статические файлы"""
-    return send_from_directory(app.static_folder, path)
 
 @app.route('/profile/<user_id>', methods=['GET'])
 @swag_from({
@@ -158,23 +210,6 @@ def get_leaderboard():
     # Убрана проверка авторизации для демонстрации
     sorted_leaderboard = sorted(leaderboard, key=lambda x: x.get('rating', 0), reverse=True)
     return jsonify({'leaderboard': sorted_leaderboard}), 200
-@swag_from({
-    'tags': ['Leaderboard'],
-    'summary': 'Получение табло лидеров',
-    'security': [{'Bearer': []}],
-    'responses': {200: {'description': 'Табло лидеров (топ 100)'}, 401: {'description': 'Неавторизован'}}
-})
-def get_leaderboard():
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    if not verify_token(token):
-        return jsonify({'message': 'Неавторизован'}), 401
-    
-    sorted_leaderboard = sorted(
-        leaderboard,
-        key=lambda x: x.get('rating', 0),
-        reverse=True
-    )
-    return jsonify({'leaderboard': sorted_leaderboard[:100]}), 200
 
 @app.route('/leaderboard/update', methods=['POST'])
 @swag_from({
@@ -282,7 +317,27 @@ def join_team(team_id):
     
     return jsonify(teams[team_id]), 200
 
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    """Prometheus метрики endpoint"""
+    return generate_latest(REGISTRY), 200, {'Content-Type': CONTENT_TYPE_LATEST}
+
+# Статические файлы и главная страница - в конце, чтобы не перехватывать API endpoints
+@app.route('/', methods=['GET'])
+def index():
+    """Главная страница с веб-интерфейсом"""
+    try:
+        import os
+        static_path = os.path.join(app.static_folder, 'index.html')
+        if os.path.exists(static_path):
+            return send_from_directory(app.static_folder, 'index.html')
+        else:
+            return jsonify({'error': f'Static folder: {app.static_folder}, File not found'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Error loading static file: {str(e)}, static_folder: {app.static_folder}'}), 404
+
 if __name__ == '__main__':
     # Для Serverless Containers используем PORT из переменных окружения
     port = int(os.getenv('PORT', 5002))
+    logger.info(f"Starting user_service on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False)

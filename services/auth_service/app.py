@@ -3,11 +3,74 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import datetime
 import os
+import logging
+import time
 from functools import wraps
 from flasgger import Swagger, swag_from
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST, REGISTRY
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
+
+# Prometheus метрики
+http_requests_total = Counter(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['service', 'method', 'endpoint', 'status']
+)
+
+http_request_duration_seconds = Histogram(
+    'http_request_duration_seconds',
+    'HTTP request duration in seconds',
+    ['service', 'method', 'endpoint']
+)
+
+# Middleware для логирования и метрик
+@app.before_request
+def before_request():
+    request.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    duration = time.time() - request.start_time
+    endpoint = request.endpoint or 'unknown'
+    
+    # Логирование
+    logger.info(
+        f"{request.method} {request.path} - {response.status_code} - {duration:.3f}s",
+        extra={
+            'method': request.method,
+            'endpoint': endpoint,
+            'status_code': response.status_code,
+            'duration': duration
+        }
+    )
+    
+    # Метрики
+    http_requests_total.labels(
+        service='auth_service',
+        method=request.method,
+        endpoint=endpoint,
+        status=response.status_code
+    ).inc()
+    
+    http_request_duration_seconds.labels(
+        service='auth_service',
+        method=request.method,
+        endpoint=endpoint
+    ).observe(duration)
+    
+    return response
 
 # Настройка Swagger
 swagger_config = {
@@ -246,6 +309,12 @@ def login():
 def verify_token(current_user):
     return jsonify({'valid': True, 'user_id': current_user}), 200
 
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    """Prometheus метрики endpoint"""
+    return generate_latest(REGISTRY), 200, {'Content-Type': CONTENT_TYPE_LATEST}
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    logger.info("Starting auth_service on port 5001")
+    app.run(host='0.0.0.0', port=5001, debug=False)
 
