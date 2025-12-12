@@ -204,13 +204,23 @@ jobs:
           echo "Checking YC CLI configuration..."
           yc config list
           
-          # НЕ указываем --service-account-id явно
-          # YC CLI автоматически использует сервисный аккаунт из конфигурации (service-account-key)
-          # Это позволяет избежать ошибки "Service account is not available"
-          echo "Deploying without explicit --service-account-id parameter"
+          # Извлекаем ID сервисного аккаунта из JSON ключей
+          SA_ID=$(cat /tmp/yc-keys.json | jq -r '.service_account_id // empty' 2>/dev/null || echo "")
+          
+          if [ -z "$SA_ID" ]; then
+            echo "ERROR: Could not extract service_account_id from JSON keys"
+            echo "Please ensure YC_KEYS contains service_account_id field"
+            exit 1
+          fi
+          
+          echo "Using service account ID: $SA_ID"
+          
+          # Параметр --service-account-id обязателен для Serverless Containers
+          # Используем сервисный аккаунт из JSON ключей
           yc serverless container revision deploy \
             --container-name ${{ secrets.YC_CONTAINER_NAME }} \
             --image cr.yandex/${{ secrets.YC_REGISTRY_ID }}/user-service:latest \
+            --service-account-id "$SA_ID" \
             --cores 1 \
             --memory 128MB \
             --execution-timeout 30s \
