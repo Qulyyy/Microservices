@@ -270,4 +270,6 @@ def join_team(team_id):
     return jsonify(teams[team_id]), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5002, debug=True)
+    # Для Serverless Containers используем PORT из переменных окружения
+    port = int(os.getenv('PORT', 5002))
+    app.run(host='0.0.0.0', port=port, debug=False)

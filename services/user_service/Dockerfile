@@ -7,8 +7,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 
+# Используем PORT из переменных окружения (для Serverless Containers)
+# По умолчанию 5002 для локальной разработки
+ENV PORT=5002
+
 EXPOSE 5002
 
-CMD ["python", "app.py"]
+# Используем gunicorn для production
+# Для Serverless Containers Яндекс.Облако автоматически устанавливает PORT
+CMD gunicorn --bind 0.0.0.0:${PORT:-5002} --workers 2 --threads 2 --timeout 30 app:app
 
 
