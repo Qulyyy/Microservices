@@ -217,7 +217,7 @@ jobs:
           
           # Параметр --service-account-id обязателен для Serverless Containers
           # Используем сервисный аккаунт из JSON ключей
-          # PORT будет установлен автоматически Яндекс.Облаком
+          # PORT=8080 - обязателен для Serverless Containers в Яндекс.Облаке
           yc serverless container revision deploy \
             --container-name ${{ secrets.YC_CONTAINER_NAME }} \
             --image cr.yandex/${{ secrets.YC_REGISTRY_ID }}/user-service:latest \
@@ -226,7 +226,7 @@ jobs:
             --memory 128MB \
             --execution-timeout 30s \
             --concurrency 10 \
-            --environment AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL || 'http://auth-service:5001' }} \
+            --environment PORT=8080,AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL || 'http://auth-service:5001' }} \
             --folder-id ${{ secrets.YC_FOLDER_ID }}
 
   # Дополнительная работа: сборка остальных сервисов (без публикации)
