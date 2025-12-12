@@ -6,6 +6,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
+COPY static/ static/
 
 # Для Serverless Containers Яндекс.Облако устанавливает PORT автоматически (обычно 8080)
 # PORT - зарезервированная переменная, нельзя устанавливать явно

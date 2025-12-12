@@ -1,9 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import requests
 import os
 from flasgger import Swagger, swag_from
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 AUTH_SERVICE_URL = os.getenv('AUTH_SERVICE_URL', 'http://auth_service:5001')
 
@@ -65,6 +65,16 @@ def verify_token(token):
 })
 def health():
     return jsonify({'status': 'ok', 'service': 'user_service'})
+
+@app.route('/', methods=['GET'])
+def index():
+    """Главная страница с веб-интерфейсом"""
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>', methods=['GET'])
+def static_files(path):
+    """Статические файлы"""
+    return send_from_directory(app.static_folder, path)
 
 @app.route('/profile/<user_id>', methods=['GET'])
 @swag_from({
