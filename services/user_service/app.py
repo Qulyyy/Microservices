@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 import requests
 import os
+import random
 from flasgger import Swagger, swag_from
 
 app = Flask(__name__, static_folder='static')
@@ -151,6 +152,15 @@ def update_profile(user_id):
 @swag_from({
     'tags': ['Leaderboard'],
     'summary': 'Получение табло лидеров',
+    'responses': {200: {'description': 'Табло лидеров'}}
+})
+def get_leaderboard():
+    # Убрана проверка авторизации для демонстрации
+    sorted_leaderboard = sorted(leaderboard, key=lambda x: x.get('rating', 0), reverse=True)
+    return jsonify({'leaderboard': sorted_leaderboard}), 200
+@swag_from({
+    'tags': ['Leaderboard'],
+    'summary': 'Получение табло лидеров',
     'security': [{'Bearer': []}],
     'responses': {200: {'description': 'Табло лидеров (топ 100)'}, 401: {'description': 'Неавторизован'}}
 })
@@ -202,21 +212,16 @@ def update_leaderboard():
 @swag_from({
     'tags': ['Teams'],
     'summary': 'Получение списка команд',
-    'security': [{'Bearer': []}],
-    'responses': {200: {'description': 'Список команд'}, 401: {'description': 'Неавторизован'}}
+    'responses': {200: {'description': 'Список команд'}}
 })
 def get_teams():
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    if not verify_token(token):
-        return jsonify({'message': 'Неавторизован'}), 401
-    
+    # Убрана проверка авторизации для демонстрации
     return jsonify({'teams': list(teams.values())}), 200
 
 @app.route('/teams', methods=['POST'])
 @swag_from({
     'tags': ['Teams'],
     'summary': 'Создание новой команды',
-    'security': [{'Bearer': []}],
     'parameters': [{
         'name': 'body',
         'in': 'body',
@@ -229,20 +234,18 @@ def get_teams():
             }
         }
     }],
-    'responses': {201: {'description': 'Команда создана'}, 400: {'description': 'Ошибка валидации'}, 401: {'description': 'Неавторизован'}}
+    'responses': {201: {'description': 'Команда создана'}, 400: {'description': 'Ошибка валидации'}}
 })
 def create_team():
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user_id = verify_token(token)
-    if not user_id:
-        return jsonify({'message': 'Неавторизован'}), 401
-    
+    # Убрана проверка авторизации для демонстрации
     data = request.get_json()
     team_name = data.get('name')
     if not team_name:
         return jsonify({'message': 'Необходимо имя команды'}), 400
     
     team_id = f"team_{len(teams) + 1}"
+    # Используем случайный user_id для демо
+    user_id = f"user_{random.randint(1000, 9999)}"
     teams[team_id] = {
         'team_id': team_id,
         'name': team_name,
