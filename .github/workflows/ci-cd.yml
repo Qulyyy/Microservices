@@ -204,35 +204,19 @@ jobs:
           echo "Checking YC CLI configuration..."
           yc config list
           
-          # Параметр --service-account-id не обязателен, если YC CLI настроен с сервисным аккаунтом
-          # YC CLI автоматически использует сервисный аккаунт из конфигурации
-          # Если нужно указать явно, можно использовать ID из JSON ключей
-          SA_ID=$(cat /tmp/yc-keys.json | jq -r '.service_account_id // .id // empty' 2>/dev/null || echo "")
-          
-          if [ -n "$SA_ID" ]; then
-            echo "Using service account ID from JSON: $SA_ID"
-            yc serverless container revision deploy \
-              --container-name ${{ secrets.YC_CONTAINER_NAME }} \
-              --image cr.yandex/${{ secrets.YC_REGISTRY_ID }}/user-service:latest \
-              --service-account-id "$SA_ID" \
-              --cores 1 \
-              --memory 128MB \
-              --execution-timeout 30s \
-              --concurrency 10 \
-              --environment AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL || 'http://auth-service:5001' }} \
-              --folder-id ${{ secrets.YC_FOLDER_ID }}
-          else
-            echo "Using service account from YC CLI configuration"
-            yc serverless container revision deploy \
-              --container-name ${{ secrets.YC_CONTAINER_NAME }} \
-              --image cr.yandex/${{ secrets.YC_REGISTRY_ID }}/user-service:latest \
-              --cores 1 \
-              --memory 128MB \
-              --execution-timeout 30s \
-              --concurrency 10 \
-              --environment AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL || 'http://auth-service:5001' }} \
-              --folder-id ${{ secrets.YC_FOLDER_ID }}
-          fi
+          # НЕ указываем --service-account-id явно
+          # YC CLI автоматически использует сервисный аккаунт из конфигурации (service-account-key)
+          # Это позволяет избежать ошибки "Service account is not available"
+          echo "Deploying without explicit --service-account-id parameter"
+          yc serverless container revision deploy \
+            --container-name ${{ secrets.YC_CONTAINER_NAME }} \
+            --image cr.yandex/${{ secrets.YC_REGISTRY_ID }}/user-service:latest \
+            --cores 1 \
+            --memory 128MB \
+            --execution-timeout 30s \
+            --concurrency 10 \
+            --environment AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL || 'http://auth-service:5001' }} \
+            --folder-id ${{ secrets.YC_FOLDER_ID }}
 
   # Дополнительная работа: сборка остальных сервисов (без публикации)
   build-other-services:
