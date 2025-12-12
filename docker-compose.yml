@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  auth_service:
+    build: ./services/auth_service
+    container_name: auth_service
+    ports:
+      - "5001:5001"
+    environment:
+      - SECRET_KEY=your-secret-key-change-in-production
+    networks:
+      - microservices_network
+    restart: unless-stopped
+
+  user_service:
+    build: ./services/user_service
+    container_name: user_service
+    ports:
+      - "5002:5002"
+    environment:
+      - AUTH_SERVICE_URL=http://auth_service:5001
+    depends_on:
+      - auth_service
+    networks:
+      - microservices_network
+    restart: unless-stopped
+
+  admin_service:
+    build: ./services/admin_service
+    container_name: admin_service
+    ports:
+      - "5003:5003"
+    environment:
+      - AUTH_SERVICE_URL=http://auth_service:5001
+    depends_on:
+      - auth_service
+    networks:
+      - microservices_network
+    restart: unless-stopped
+
+  submission_service:
+    build: ./services/submission_service
+    container_name: submission_service
+    ports:
+      - "5004:5004"
+    environment:
+      - AUTH_SERVICE_URL=http://auth_service:5001
+      - COMPILER_SERVICE_URL=http://compiler_service:5005
+      - ADMIN_SERVICE_URL=http://admin_service:5003
+    depends_on:
+      - auth_service
+      - compiler_service
+      - admin_service
+    networks:
+      - microservices_network
+    restart: unless-stopped
+
+  compiler_service:
+    build: ./services/compiler_service
+    container_name: compiler_service
+    ports:
+      - "5005:5005"
+    environment:
+      - ADMIN_SERVICE_URL=http://admin_service:5003
+    depends_on:
+      - admin_service
+    networks:
+      - microservices_network
+    restart: unless-stopped
+
+  notification_service:
+    build: ./services/notification_service
+    container_name: notification_service
+    ports:
+      - "5006:5006"
+    environment:
+      - AUTH_SERVICE_URL=http://auth_service:5001
+    depends_on:
+      - auth_service
+    networks:
+      - microservices_network
+    restart: unless-stopped
+
+  ad_service:
+    build: ./services/ad_service
+    container_name: ad_service
+    ports:
+      - "5007:5007"
+    environment:
+      - AUTH_SERVICE_URL=http://auth_service:5001
+    depends_on:
+      - auth_service
+    networks:
+      - microservices_network
+    restart: unless-stopped
+
+  email_service:
+    build: ./services/email_service
+    container_name: email_service
+    ports:
+      - "5008:5008"
+    environment:
+      - AUTH_SERVICE_URL=http://auth_service:5001
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - AMQP_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - auth_service
+      - rabbitmq
+    networks:
+      - microservices_network
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - microservices_network
+    restart: unless-stopped
+
+networks:
+  microservices_network:
+    driver: bridge
+
