@@ -15,6 +15,7 @@ EXPOSE 5002
 
 # Используем gunicorn для production
 # Для Serverless Containers Яндекс.Облако автоматически устанавливает PORT
-CMD gunicorn --bind 0.0.0.0:${PORT:-5002} --workers 2 --threads 2 --timeout 30 app:app
+# Используем sh для правильной подстановки переменной окружения
+CMD sh -c 'gunicorn --bind 0.0.0.0:${PORT:-5002} --workers 1 --threads 2 --timeout 30 --access-logfile - --error-logfile - app:app'
 
 
