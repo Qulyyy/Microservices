@@ -219,6 +219,7 @@ jobs:
           # Используем сервисный аккаунт из JSON ключей
           # PORT устанавливается автоматически Яндекс.Облаком (обычно 8080)
           # Нельзя устанавливать PORT явно - это зарезервированная переменная
+          # --allow-unauthenticated-invoke - включает публичный доступ
           yc serverless container revision deploy \
             --container-name ${{ secrets.YC_CONTAINER_NAME }} \
             --image cr.yandex/${{ secrets.YC_REGISTRY_ID }}/user-service:latest \
@@ -228,7 +229,8 @@ jobs:
             --execution-timeout 30s \
             --concurrency 10 \
             --environment AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL || 'http://auth-service:5001' }} \
-            --folder-id ${{ secrets.YC_FOLDER_ID }}
+            --folder-id ${{ secrets.YC_FOLDER_ID }} \
+            --allow-unauthenticated-invoke
 
   # Дополнительная работа: сборка остальных сервисов (без публикации)
   build-other-services:
