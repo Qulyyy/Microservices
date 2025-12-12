@@ -227,8 +227,7 @@ jobs:
             --execution-timeout 30s \
             --concurrency 10 \
             --environment AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL || 'http://auth-service:5001' }} \
-            --folder-id ${{ secrets.YC_FOLDER_ID }} \
-            --listen-address 0.0.0.0
+            --folder-id ${{ secrets.YC_FOLDER_ID }}
 
   # Дополнительная работа: сборка остальных сервисов (без публикации)
   build-other-services:
