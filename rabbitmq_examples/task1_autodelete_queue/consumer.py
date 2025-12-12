@@ -11,7 +11,7 @@ RABBITMQ_USER = 'guest'
 RABBITMQ_PASSWORD = 'guest'
 
 # Название очереди
-QUEUE_NAME = 'inbo-04_laptev_autodelete'
+QUEUE_NAME = 'ikbo-27-22_contests_autodelete'
 
 def callback(ch, method, properties, body):
     """Обработка полученного сообщения"""

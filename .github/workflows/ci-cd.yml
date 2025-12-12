@@ -65,8 +65,95 @@ jobs:
         run: |
           docker-compose down
 
-  build:
-    name: Build Docker Images
+  # Задание 1: Непрерывная интеграция и доставка в DockerHub для auth_service
+  build-and-push-dockerhub:
+    name: Build and Push to DockerHub
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/auth-service
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      - name: Build and push auth_service to DockerHub
+        uses: docker/build-push-action@v4
+        with:
+          context: ./services/auth_service
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/auth-service:latest
+          cache-to: type=inline,mode=max
+
+  # Задание 2: Непрерывная интеграция и развёртывание в Яндекс.Облако для user_service
+  build-and-deploy-yandex:
+    name: Build and Deploy to Yandex Cloud
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Configure Yandex Cloud CLI
+        uses: yc-actions/yc-setup@v1
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_KEYS }}
+      
+      - name: Login to Yandex Container Registry
+        run: |
+          echo ${{ secrets.YC_KEYS }} | docker login \
+            --username json_key \
+            --password-stdin \
+            cr.yandex
+      
+      - name: Build Docker image
+        run: |
+          docker build -t cr.yandex/${{ secrets.YC_REGISTRY_ID }}/user-service:latest \
+            ./services/user_service
+      
+      - name: Push to Yandex Container Registry
+        run: |
+          docker push cr.yandex/${{ secrets.YC_REGISTRY_ID }}/user-service:latest
+      
+      - name: Create/Update Serverless Container revision
+        run: |
+          yc serverless container revision deploy \
+            --container-name ${{ secrets.YC_CONTAINER_NAME }} \
+            --image cr.yandex/${{ secrets.YC_REGISTRY_ID }}/user-service:latest \
+            --service-account-id ${{ secrets.YC_SA_ID }} \
+            --cores 1 \
+            --memory 128MB \
+            --execution-timeout 30s \
+            --concurrency 10 \
+            --environment AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL || 'http://auth-service:5001' }} \
+            --folder-id ${{ secrets.YC_FOLDER_ID }}
+
+  # Дополнительная работа: сборка остальных сервисов (без публикации)
+  build-other-services:
+    name: Build Other Services
     runs-on: ubuntu-latest
     needs: test
     
@@ -76,24 +163,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       
-      - name: Build auth_service
-        uses: docker/build-push-action@v4
-        with:
-          context: ./services/auth_service
-          push: false
-          tags: auth_service:latest
-          cache-from: type=registry,ref=auth_service:latest
-          cache-to: type=inline
-      
-      - name: Build user_service
-        uses: docker/build-push-action@v4
-        with:
-          context: ./services/user_service
-          push: false
-          tags: user_service:latest
-          cache-from: type=registry,ref=user_service:latest
-          cache-to: type=inline
-      
       - name: Build admin_service
         uses: docker/build-push-action@v4
         with:
@@ -102,4 +171,3 @@ jobs:
           tags: admin_service:latest
           cache-from: type=registry,ref=admin_service:latest
           cache-to: type=inline
-

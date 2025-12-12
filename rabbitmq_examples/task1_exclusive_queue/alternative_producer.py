@@ -13,7 +13,7 @@ RABBITMQ_USER = 'guest'
 RABBITMQ_PASSWORD = 'guest'
 
 # Базовое название очереди
-BASE_QUEUE_NAME = 'inbo-04_laptev_exclusive'
+BASE_QUEUE_NAME = 'ikbo-27-22_contests_exclusive'
 
 def send_message(message):
     """Отправка сообщения в очередь с уникальным именем"""

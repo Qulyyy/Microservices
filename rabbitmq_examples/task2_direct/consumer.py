@@ -13,7 +13,7 @@ RABBITMQ_USER = 'guest'
 RABBITMQ_PASSWORD = 'guest'
 
 # Название обменника
-EXCHANGE_NAME = 'inbo-04_laptev_direct'
+EXCHANGE_NAME = 'ikbo-27-22_contests_direct'
 
 def callback(ch, method, properties, body, sleep_time):
     """Обработка полученного сообщения"""
@@ -76,15 +76,24 @@ def consume_messages(routing_key, sleep_time):
         print(f"Ошибка: {e}")
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Использование: python consumer.py <routing_key> *<время_сна>")
+    if len(sys.argv) < 2:
+        print("Использование: python consumer.py <routing_key> [время_сна]")
+        print("Пример: python consumer.py info 1")
+        print("Примечание: В PowerShell используйте число без символа *")
         sys.exit(1)
     
     routing_key = sys.argv[1]
-    sleep_arg = sys.argv[2]
     
-    if sleep_arg.startswith('*'):
-        sleep_time = int(sleep_arg[1:])
+    # Время сна опционально
+    if len(sys.argv) >= 3:
+        sleep_arg = sys.argv[2]
+        if sleep_arg.startswith('*'):
+            sleep_time = int(sleep_arg[1:])
+        else:
+            try:
+                sleep_time = int(sleep_arg)
+            except ValueError:
+                sleep_time = 1
     else:
         sleep_time = 1
     

@@ -14,7 +14,7 @@ RABBITMQ_USER = 'guest'
 RABBITMQ_PASSWORD = 'guest'
 
 # Название обменника
-EXCHANGE_NAME = 'inbo-04_laptev_fanout'
+EXCHANGE_NAME = 'ikbo-27-22_contests_fanout'
 
 def send_message(message, sleep_time):
     """Отправка сообщения через fanout обменник"""
@@ -59,16 +59,27 @@ def send_message(message, sleep_time):
         print(f"Ошибка при отправке сообщения: {e}")
 
 if __name__ == '__main__':
-    # Парсинг аргументов: сообщение и время сна (символ #)
-    if len(sys.argv) < 3:
-        print("Использование: python producer.py <сообщение> #<время_сна>")
+    # Парсинг аргументов: сообщение и время сна
+    # В PowerShell символ # является комментарием, поэтому передавайте время как число
+    if len(sys.argv) < 2:
+        print("Использование: python producer.py <сообщение> [время_сна]")
+        print("Пример: python producer.py 'Сообщение для всех' 1")
+        print("Примечание: В PowerShell используйте число без символа #")
         sys.exit(1)
     
     message = sys.argv[1]
-    sleep_arg = sys.argv[2]
     
-    if sleep_arg.startswith('#'):
-        sleep_time = int(sleep_arg[1:])
+    # Время сна можно передать как второй аргумент (число без символа #)
+    if len(sys.argv) >= 3:
+        try:
+            sleep_time = int(sys.argv[2])
+        except ValueError:
+            # Если передан аргумент с # (для совместимости), попробуем извлечь число
+            sleep_arg = sys.argv[2]
+            if sleep_arg.startswith('#'):
+                sleep_time = int(sleep_arg[1:])
+            else:
+                sleep_time = 1
     else:
         sleep_time = 1
     

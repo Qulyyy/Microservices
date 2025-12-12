@@ -14,7 +14,7 @@ RABBITMQ_USER = 'guest'
 RABBITMQ_PASSWORD = 'guest'
 
 # Название обменника
-EXCHANGE_NAME = 'inbo-04_laptev_direct'
+EXCHANGE_NAME = 'ikbo-27-22_contests_direct'
 
 def send_message(message, routing_key, sleep_time):
     """Отправка сообщения через direct обменник"""
@@ -58,16 +58,25 @@ def send_message(message, routing_key, sleep_time):
         print(f"Ошибка при отправке сообщения: {e}")
 
 if __name__ == '__main__':
-    if len(sys.argv) < 4:
-        print("Использование: python producer.py <сообщение> <routing_key> *<время_сна>")
+    if len(sys.argv) < 3:
+        print("Использование: python producer.py <сообщение> <routing_key> [время_сна]")
+        print("Пример: python producer.py 'Сообщение' info 1")
+        print("Примечание: В PowerShell используйте число без символа *")
         sys.exit(1)
     
     message = sys.argv[1]
     routing_key = sys.argv[2]
-    sleep_arg = sys.argv[3]
     
-    if sleep_arg.startswith('*'):
-        sleep_time = int(sleep_arg[1:])
+    # Время сна опционально
+    if len(sys.argv) >= 4:
+        sleep_arg = sys.argv[3]
+        if sleep_arg.startswith('*'):
+            sleep_time = int(sleep_arg[1:])
+        else:
+            try:
+                sleep_time = int(sleep_arg)
+            except ValueError:
+                sleep_time = 1
     else:
         sleep_time = 1
     

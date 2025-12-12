@@ -12,7 +12,7 @@ RABBITMQ_USER = 'guest'
 RABBITMQ_PASSWORD = 'guest'
 
 # Название очереди
-QUEUE_NAME = 'inbo-04_laptev_durable'
+QUEUE_NAME = 'ikbo-27-22_contests_durable'
 
 def send_message(message):
     """Отправка сообщения в устойчивую очередь"""

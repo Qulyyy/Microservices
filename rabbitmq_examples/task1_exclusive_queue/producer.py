@@ -11,8 +11,7 @@ RABBITMQ_PORT = 5672
 RABBITMQ_USER = 'guest'
 RABBITMQ_PASSWORD = 'guest'
 
-# Название очереди в формате <группа>_<фамилия>
-QUEUE_NAME = 'inbo-04_laptev_exclusive'
+QUEUE_NAME = 'ikbo-27-22_contests_exclusive'
 
 def send_message(message):
     """Отправка сообщения в эксклюзивную очередь"""

@@ -5,8 +5,18 @@
 ## Быстрый старт
 
 1. **Установите зависимости:**
-   ```bash
-   pip install -r requirements.txt
+   ```powershell
+   python -m pip install -r requirements.txt
+   ```
+   
+   Или напрямую:
+   ```powershell
+   python -m pip install pika==1.3.2
+   ```
+   
+   **Проверка установки:**
+   ```powershell
+   python -c "import pika; print('pika установлен:', pika.__version__)"
    ```
 
 2. **Запустите RabbitMQ:**
@@ -46,25 +56,28 @@ python producer.py "Сообщение"  # в другом
 ### Задание 2: Взаимодействие с нагрузкой
 
 **Fanout (символ #):**
-```bash
+```powershell
 cd task2_fanout
-python consumer.py #2  # в одном терминале
-python producer.py "Сообщение" #1  # в другом
+python consumer.py 2  # в одном терминале
+python producer.py "Сообщение" 1  # в другом
 ```
+**Примечание:** В PowerShell символ `#` является комментарием, используйте число без символа.
 
 **Direct (символ *):**
-```bash
+```powershell
 cd task2_direct
-python consumer.py info *1  # в одном терминале
-python producer.py "Сообщение" info *1  # в другом
+python consumer.py info 1  # в одном терминале
+python producer.py "Сообщение" info 1  # в другом
 ```
+**Примечание:** В PowerShell используйте число без символа `*`.
 
 **Topic (символ -):**
-```bash
+```powershell
 cd task2_topic
-python consumer.py "stock.*.usd" -1  # в одном терминале
-python producer.py "Акции США" stock.usa.usd -1  # в другом
+python consumer.py "stock.*.usd" 1  # в одном терминале
+python producer.py "Акции США" stock.usa.usd 1  # в другом
 ```
+**Примечание:** В PowerShell используйте число без символа `-`.
 
 ## Структура
 

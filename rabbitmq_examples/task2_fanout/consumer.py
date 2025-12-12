@@ -13,7 +13,7 @@ RABBITMQ_USER = 'guest'
 RABBITMQ_PASSWORD = 'guest'
 
 # Название обменника
-EXCHANGE_NAME = 'inbo-04_laptev_fanout'
+EXCHANGE_NAME = 'ikbo-27-22_contests_fanout'
 
 def callback(ch, method, properties, body, sleep_time):
     """Обработка полученного сообщения"""
@@ -76,8 +76,20 @@ def consume_messages(sleep_time):
 
 if __name__ == '__main__':
     # Парсинг времени сна из аргументов
-    if len(sys.argv) > 1 and sys.argv[1].startswith('#'):
-        sleep_time = int(sys.argv[1][1:])
+    # В PowerShell символ # является комментарием, поэтому передавайте время как число
+    if len(sys.argv) > 1:
+        try:
+            # Попробуем извлечь число из аргумента
+            sleep_arg = sys.argv[1]
+            if sleep_arg.startswith('#'):
+                sleep_time = int(sleep_arg[1:])
+            else:
+                sleep_time = int(sleep_arg)
+        except ValueError:
+            print("Использование: python consumer.py [время_сна]")
+            print("Пример: python consumer.py 2")
+            print("Примечание: В PowerShell используйте число без символа #")
+            sleep_time = 1
     else:
         sleep_time = 1
     
