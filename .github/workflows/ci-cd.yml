@@ -182,10 +182,11 @@ jobs:
       
       - name: Login to Yandex Container Registry
         run: |
-          # Авторизация в Container Registry используя JSON ключи
-          # Формат: весь JSON файл передается как пароль
-          cat /tmp/yc-keys.json | docker login \
-            --username json_key \
+          # Авторизация в Container Registry используя IAM токен
+          # Получаем IAM токен через YC CLI
+          IAM_TOKEN=$(yc iam create-token)
+          echo "$IAM_TOKEN" | docker login \
+            --username iam \
             --password-stdin \
             cr.yandex
       
