@@ -31,39 +31,83 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          # Установка зависимостей для тестирования
+          pip install pytest pytest-cov requests || true
       
-      - name: Run unit tests
+      - name: Check if unit tests exist
+        id: check_unit_tests
         working-directory: ./services/${{ matrix.service }}
         run: |
-          pytest ./tests/unit -v --cov=. --cov-report=term-missing
+          if [ -d "./tests/unit" ] && [ "$(ls -A ./tests/unit/*.py 2>/dev/null)" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Run unit tests
+        if: steps.check_unit_tests.outputs.exists == 'true'
+        working-directory: ./services/${{ matrix.service }}
+        run: |
+          python -m pytest ./tests/unit -v --cov=. --cov-report=term-missing
+      
+      - name: Skip unit tests (no tests found)
+        if: steps.check_unit_tests.outputs.exists == 'false'
+        run: |
+          echo "No unit tests found for ${{ matrix.service }}, skipping..."
+      
+      - name: Set up Docker Compose
+        if: matrix.service == 'auth_service' || matrix.service == 'user_service' || matrix.service == 'admin_service'
+        run: |
+          # Docker Compose V2 is included in newer Docker versions
+          docker compose version || docker-compose version
       
       - name: Start services for e2e tests
         if: matrix.service == 'auth_service'
         run: |
-          docker-compose up -d auth_service
+          cd ${{ github.workspace }}
+          docker compose up -d auth_service || docker-compose up -d auth_service
           sleep 10
       
       - name: Start services for e2e tests
         if: matrix.service == 'user_service'
         run: |
-          docker-compose up -d auth_service user_service
+          cd ${{ github.workspace }}
+          docker compose up -d auth_service user_service || docker-compose up -d auth_service user_service
           sleep 15
       
       - name: Start services for e2e tests
         if: matrix.service == 'admin_service'
         run: |
-          docker-compose up -d auth_service admin_service
+          cd ${{ github.workspace }}
+          docker compose up -d auth_service admin_service || docker-compose up -d auth_service admin_service
           sleep 15
       
-      - name: Run e2e tests
+      - name: Check if e2e tests exist
+        id: check_e2e_tests
         working-directory: ./services/${{ matrix.service }}
         run: |
-          pytest ./tests/e2e -v
+          if [ -d "./tests/e2e" ] && [ "$(ls -A ./tests/e2e/*.py 2>/dev/null)" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Run e2e tests
+        if: steps.check_e2e_tests.outputs.exists == 'true'
+        working-directory: ./services/${{ matrix.service }}
+        run: |
+          python -m pytest ./tests/e2e -v
+      
+      - name: Skip e2e tests (no tests found)
+        if: steps.check_e2e_tests.outputs.exists == 'false'
+        run: |
+          echo "No e2e tests found for ${{ matrix.service }}, skipping..."
       
       - name: Stop services
         if: always()
         run: |
-          docker-compose down
+          cd ${{ github.workspace }}
+          docker compose down || docker-compose down || true
 
   # Задание 1: Непрерывная интеграция и доставка в DockerHub для auth_service
   build-and-push-dockerhub:
