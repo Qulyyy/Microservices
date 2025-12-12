@@ -19,6 +19,7 @@ services:
       - "5002:5002"
     environment:
       - AUTH_SERVICE_URL=http://auth_service:5001
+      - PORT=5002
     depends_on:
       - auth_service
     networks:
