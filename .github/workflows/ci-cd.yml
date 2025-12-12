@@ -161,14 +161,30 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       
+      - name: Install Yandex Cloud CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
+          # Установка jq для работы с JSON
+          sudo apt-get update && sudo apt-get install -y jq
+      
       - name: Configure Yandex Cloud CLI
-        uses: yc-actions/yc-setup@v1
-        with:
-          yc-sa-json-credentials: ${{ secrets.YC_KEYS }}
+        run: |
+          mkdir -p ~/.config/yandex-cloud
+          # Сохраняем JSON ключи сервисного аккаунта
+          echo '${{ secrets.YC_KEYS }}' > /tmp/yc-keys.json
+          # Настраиваем YC CLI
+          yc config profile create github-actions || true
+          yc config set service-account-key /tmp/yc-keys.json
+          yc config set folder-id ${{ secrets.YC_FOLDER_ID }}
+          # Проверка конфигурации
+          yc config list
       
       - name: Login to Yandex Container Registry
         run: |
-          echo ${{ secrets.YC_KEYS }} | docker login \
+          # Авторизация в Container Registry используя JSON ключи
+          # Формат: весь JSON файл передается как пароль
+          cat /tmp/yc-keys.json | docker login \
             --username json_key \
             --password-stdin \
             cr.yandex
